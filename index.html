@@ -262,10 +262,10 @@
             ];
 
             const WQ_PARAMS = {
-                pH: { label: 'pH', values: ['6.0', '6.4', '6.8', '7.0', '7.2', '7.6', '8.0'] },
-                Ammonia: { label: 'Ammonia', values: ['0', '0.25', '0.5', '1.0', '2.0', '4.0'], unit: 'ppm' },
-                Nitrite: { label: 'Nitrite', values: ['0', '0.25', '0.5', '1.0', '2.0', '5.0'], unit: 'ppm' },
-                Nitrate: { label: 'Nitrate', values: ['0', '5', '10', '20', '40', '80'], unit: 'ppm' }
+                pH: { label: 'pH', values: ['Not Tested', '6.0', '6.4', '6.8', '7.0', '7.2', '7.6', '8.0'] },
+                Ammonia: { label: 'Ammonia', values: ['Not Tested', '0', '0.25', '0.5', '1.0', '2.0', '4.0'], unit: 'ppm' },
+                Nitrite: { label: 'Nitrite', values: ['Not Tested', '0', '0.25', '0.5', '1.0', '2.0', '5.0'], unit: 'ppm' },
+                Nitrate: { label: 'Nitrate', values: ['Not Tested', '0', '5', '10', '20', '40', '80'], unit: 'ppm' }
             };
 
             // --- Date & Data Helpers ---
@@ -350,10 +350,10 @@
                 const log = getDayLog(date);
                 const wq = log.wq || {};
 
-                if (parseFloat(wq.Ammonia || 0) >= 0.25 || parseFloat(wq.Nitrite || 0) >= 0.25) {
+                if (parseFloat(wq.Ammonia) >= 0.25 || parseFloat(wq.Nitrite) >= 0.25) {
                     actions.push({ type: 'priority', title: 'Priority Alert: Toxins Detected', message: 'Perform an immediate 50% water change. Dose Prime for the full tank volume (3 gal) to detoxify.', suppressFertilizers: true });
                 }
-                if (parseFloat(wq.Nitrate || 0) >= 40) {
+                if (parseFloat(wq.Nitrate) >= 40) {
                     actions.push({ type: 'recommendation', title: 'High Nitrates Advisory', message: 'Consider a water change to lower nitrates. Pause Nitrogen dosing if levels remain high.', suppressNitrogen: true });
                 }
                 return actions;
@@ -410,29 +410,33 @@
             }
             
             // --- Gemini API Integration ---
+            function getWqValueForPrompt(log, key) {
+                return log.wq && log.wq[key] !== undefined && log.wq[key] !== 'Not Tested' ? log.wq[key] : 'Not Tested';
+            }
+
             async function getGeminiAnalysis() {
-                const todayLog = getDayLog(state.selectedDate);
+                const selectedLog = getDayLog(state.selectedDate);
                 let promptHistory = `Historical Data (last 3 logs):\n`;
                 for(let i=1; i<=3; i++){
                     const pastDate = new Date(state.selectedDate);
                     pastDate.setDate(pastDate.getDate() - i);
                     const pastLog = getDayLog(pastDate);
                     const doses = pastLog.doses ? Object.keys(pastLog.doses).join(', ') : 'None';
-                    promptHistory += `- ${toISODateString(pastDate)}: Ammonia: ${pastLog.wq.Ammonia || 'N/A'}, Nitrite: ${pastLog.wq.Nitrite || 'N/A'}, Nitrate: ${pastLog.wq.Nitrate || 'N/A'}, Doses: ${doses || 'None'}\n`;
+                    promptHistory += `- ${toISODateString(pastDate)}: Ammonia: ${getWqValueForPrompt(pastLog, 'Ammonia')}, Nitrite: ${getWqValueForPrompt(pastLog, 'Nitrite')}, Nitrate: ${getWqValueForPrompt(pastLog, 'Nitrate')}, Doses: ${doses || 'None'}\n`;
                 }
 
-                const prompt = `You are an expert aquarist analysing data for a 3-gallon planted nano tank.
+                const prompt = `You are an expert aquarist analysing data for a 3-gallon planted nano tank with shrimp and snails.
                 Today's Date: ${toISODateString(state.selectedDate)}
                 Today's Water Parameters:
-                - pH: ${todayLog.wq.pH || 'Not Tested'}
-                - Ammonia: ${todayLog.wq.Ammonia || 'Not Tested'} ppm
-                - Nitrite: ${todayLog.wq.Nitrite || 'Not Tested'} ppm
-                - Nitrate: ${todayLog.wq.Nitrate || 'Not Tested'} ppm
+                - pH: ${getWqValueForPrompt(selectedLog, 'pH')}
+                - Ammonia: ${getWqValueForPrompt(selectedLog, 'Ammonia')} ppm
+                - Nitrite: ${getWqValueForPrompt(selectedLog, 'Nitrite')} ppm
+                - Nitrate: ${getWqValueForPrompt(selectedLog, 'Nitrate')} ppm
                 Today's Actions:
-                - Water Change: ${todayLog.wc}%
-                - Doses Logged: ${Object.keys(todayLog.doses).join(', ') || 'None'}
+                - Water Change: ${selectedLog.wc}%
+                - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
                 ${promptHistory}
-                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a spaceship AI persona: functional, friendly, informative, not too jargony and keep it very short and brief.`;
+                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a starship AI: functional, friendly, and professional, and keep it very short and brief.`;
 
                 renderAnalysisResult('<p class="loading-analysis">Analysing system data...</p>');
 
@@ -477,8 +481,9 @@
             }
 
             function runInitialAnimation() {
-                elements.animItems.forEach((item, index) => {
-                    item.style.animationDelay = `${index * 150}ms`;
+                const allAnimItems = document.querySelectorAll('.animate-on-load');
+                allAnimItems.forEach((item, index) => {
+                    item.style.animationDelay = `${index * 100}ms`;
                     item.classList.add('animate-on-load');
                 });
             }
@@ -551,7 +556,7 @@
                 const log = getDayLog(state.selectedDate);
 
                 elements.wqInputs.innerHTML = Object.entries(WQ_PARAMS).map(([key, param]) => {
-                    const savedValue = log.wq[key] || param.values[0];
+                    const savedValue = log.wq[key] ?? 'Not Tested';
                     const optionsHTML = param.values.map(v => `<option value="${v}" ${v === savedValue ? 'selected' : ''}>${v}</option>`).join('');
                     return `
                         <div>
@@ -677,7 +682,13 @@
             elements.wqInputs.addEventListener('change', e => {
                 if(e.target.matches('.wq-select')) {
                     const log = getDayLog(state.selectedDate);
-                    log.wq[e.target.dataset.key] = e.target.value;
+                    const key = e.target.dataset.key;
+                    const value = e.target.value;
+                    if (value === 'Not Tested') {
+                        delete log.wq[key];
+                    } else {
+                        log.wq[key] = value;
+                    }
                     saveData();
                     render();
                 }
