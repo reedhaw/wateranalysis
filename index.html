@@ -9,29 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        @keyframes power-on-flicker {
-            0% { opacity: 0; transform: scaleY(0); }
-            20% { opacity: 0.8; transform: scaleY(1.05); }
-            30% { opacity: 0.2; }
-            50% { opacity: 1; }
-            70% { opacity: 0.7; }
-            100% { opacity: 1; transform: scaleY(1); }
-        }
-        @keyframes light-flicker {
-            0%, 100% { background-color: #f59e0b; box-shadow: 0 0 6px 1px rgba(245, 158, 11, 0.7); }
-            50% { background-color: #d97706; box-shadow: 0 0 4px 1px rgba(217, 119, 6, 0.6); }
-        }
         body, button, select, input, label, p, div, h1, h2, h3, h4, h5, h6 {
             font-family: 'Noto Serif', serif;
         }
         body {
             background-color: #282828; /* Dark Grey from theme */
             color: #3c3c3c; /* Dark text for panels */
-        }
-        .animate-on-load {
-            opacity: 0;
-            transform-origin: top;
-            animation: power-on-flicker 0.6s ease-out forwards;
         }
         .retro-panel {
             background-color: #EADBC8; /* Beige from theme */
@@ -78,9 +61,8 @@
             background-color: #4c4c4c;
         }
         .retro-btn.active::before {
-            animation: light-flicker 2s infinite;
+            background-color: #f59e0b; /* Amber */
         }
-        /* Style for buttons without an indicator light */
         .retro-btn.no-light {
             padding-left: 1rem;
         }
@@ -125,18 +107,24 @@
         .recommendation-action {
             border-left: 4px solid #D87D25; /* Orange */
         }
+        input[type="number"] {
+            background-color: #3c3c3c;
+            color: #EADBC8;
+            border: 1px solid #1e1e1e;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container mx-auto p-4 max-w-2xl">
-        <header class="text-center mb-6 animate-on-load">
+        <header class="text-center mb-6">
             <h1 class="text-3xl font-bold tracking-wide" style="color: #EADBC8;">Aquarium Log</h1>
             <p id="streak-counter" class="text-stone-400 font-semibold"></p>
         </header>
 
         <!-- Monthly Calendar Panel -->
-        <div id="calendar-panel" class="retro-panel mb-6 animate-on-load">
+        <div id="calendar-panel" class="retro-panel mb-6">
             <div id="calendar-header" class="flex justify-between items-center mb-3">
                 <button id="prev-month-btn" class="retro-btn no-light !p-2 !h-auto">&lt;</button>
                 <h2 id="month-year-title" class="text-xl font-bold text-center text-zinc-900"></h2>
@@ -148,7 +136,7 @@
         </div>
 
         <!-- Water Quality Panel -->
-        <div id="wq-panel" class="retro-panel mb-6 animate-on-load" data-anim-group="below-calendar">
+        <div id="wq-panel" class="retro-panel mb-6">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h2 class="text-xl font-bold text-center text-zinc-900">Water Quality</h2>
                 <div class="flex gap-2 w-full sm:w-auto">
@@ -156,26 +144,28 @@
                     <button id="analyze-btn" class="retro-btn active w-full font-bold">Analyse Health</button>
                 </div>
             </div>
-            <div id="water-quality-inputs-container" class="mt-4 hidden">
+            <div id="water-quality-inputs-container" class="mt-4 pt-4 border-t border-stone-300 hidden">
                 <div id="water-quality-inputs" class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm"></div>
+                <h3 class="text-lg font-bold text-zinc-800 mt-4 mb-2">Advanced Parameters</h3>
+                <div id="advanced-wq-inputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm"></div>
             </div>
         </div>
 
         <!-- System Analysis Panel -->
-        <div id="analysis-container" class="mb-6" data-anim-group="below-wq"></div>
+        <div id="analysis-container" class="mb-6"></div>
 
         <!-- Water Change Panel -->
-        <div id="wc-panel" class="retro-panel mb-6 animate-on-load" data-anim-group="below-calendar">
+        <div id="wc-panel" class="retro-panel mb-6">
             <h2 id="water-change-title" class="text-xl font-bold mb-3 text-center text-zinc-900">Water Change</h2>
-            <div id="water-change-controls" class="grid grid-cols-3 gap-2">
-                <button data-percent="0" class="retro-btn justify-center">None</button>
-                <button data-percent="25" class="retro-btn justify-center">25%</button>
-                <button data-percent="50" class="retro-btn justify-center">50%</button>
+            <div class="flex items-center justify-center gap-2">
+                <label for="wc-input" class="font-semibold">Water Added:</label>
+                <input type="number" id="wc-input" min="0" step="0.01" class="w-24 p-2 text-center rounded">
+                <span class="font-semibold">litres</span>
             </div>
         </div>
 
         <!-- Action Items -->
-        <div id="protocols-panel" class="mb-6 animate-on-load" data-anim-group="below-wc">
+        <div id="protocols-panel" class="mb-6">
             <h2 id="dosing-day-title" class="text-2xl font-bold text-center mb-4" style="color: #EADBC8;">Today's Tasks</h2>
             <div id="system-recommendations-container" class="space-y-3 mb-4"></div>
             <div id="priority-actions-container" class="space-y-3 mb-4"></div>
@@ -183,7 +173,7 @@
         </div>
         
         <!-- Chemical Reference Section -->
-        <div id="chem-ref-panel" class="retro-panel mt-6 animate-on-load" data-anim-group="below-wc">
+        <div id="chem-ref-panel" class="retro-panel mt-6">
             <button id="chem-ref-toggle" class="w-full text-left p-0 focus:outline-none">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-bold text-zinc-900">Chemical Reference</h2>
@@ -196,7 +186,7 @@
         </div>
 
         <!-- Reset Button -->
-        <div id="reset-panel" class="text-center mt-8 animate-on-load" data-anim-group="below-wc">
+        <div id="reset-panel" class="text-center mt-8">
             <button id="reset-button" class="retro-btn no-light font-bold" style="background-color: #C35843; color: #EADBC8; border-color: #a14836;">
                 Reset Day's Log
             </button>
@@ -212,17 +202,15 @@
                 prevMonthBtn: document.getElementById('prev-month-btn'),
                 nextMonthBtn: document.getElementById('next-month-btn'),
                 cards: document.getElementById('treatment-cards'),
-                waterChangeControls: document.getElementById('water-change-controls'),
+                wcInput: document.getElementById('wc-input'),
                 waterChangeTitle: document.getElementById('water-change-title'),
                 dosingDayTitle: document.getElementById('dosing-day-title'),
                 wqInputsContainer: document.getElementById('water-quality-inputs-container'),
                 wqInputs: document.getElementById('water-quality-inputs'),
                 logWqBtn: document.getElementById('log-wq-btn'),
+                advancedWqInputs: document.getElementById('advanced-wq-inputs'),
                 priorityActions: document.getElementById('priority-actions-container'),
                 systemRecommendations: document.getElementById('system-recommendations-container'),
-                animItems: document.querySelectorAll('.animate-on-load'),
-                animBelowCalendar: document.querySelectorAll('[data-anim-group="below-calendar"], [data-anim-group="below-wc"], [data-anim-group="below-wq"]'),
-                animBelowWC: document.querySelectorAll('[data-anim-group="below-wc"], [data-anim-group="below-wq"]'),
                 resetButton: document.getElementById('reset-button'),
                 chemRefToggle: document.getElementById('chem-ref-toggle'),
                 chemRefContent: document.getElementById('chem-ref-content'),
@@ -234,6 +222,7 @@
 
             // --- Constants & State ---
             const TANK_SIZE_GALLONS = 3;
+            const TANK_SIZE_LITRES = TANK_SIZE_GALLONS * 3.78541;
             const DROPS_PER_ML = 20;
             const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const TODAY = new Date();
@@ -242,7 +231,8 @@
             let state = {
                 currentDate: new Date(TODAY),
                 selectedDate: new Date(TODAY),
-                logData: {}
+                logData: {},
+                firstLogDate: null
             };
 
             // --- Data Definitions ---
@@ -253,12 +243,12 @@
             };
 
             const TREATMENTS = [
-                { name: 'Flourish', dose: () => formatDose((5 / 60) * TANK_SIZE_GALLONS), schedule: { type: 'weekly', days: [3] }, directions: 'Use 1 capful (5 mL) for each 250 L (60 US gallons) once or twice a week. For smaller doses, each cap thread is approx. 1 mL. Refrigeration is recommended 3 months after opening.' },
-                { name: 'Excel', dose: (isWC, wcPercent) => formatDose(isWC && wcPercent >= 40 ? (5 / 10) * TANK_SIZE_GALLONS : (5 / 50) * TANK_SIZE_GALLONS), schedule: { type: 'alternate_day' }, directions: 'On initial use or after a major (> 40%) water change, use 1 capful (5 mL) for every 40 L (10 US gallons). Thereafter use 1 capful for every 200 L (50 US gallons) daily or every other day.' },
-                { name: 'Iron', dose: () => formatDose((5 / 50) * TANK_SIZE_GALLONS), schedule: { type: 'weekly', days: [5] }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) or as required to maintain about 0.10 mg/L iron.' },
-                { name: 'Nitrogen', dose: () => formatDose(((2.5 / 40) * TANK_SIZE_GALLONS) * 0.75), schedule: { type: 'weekly', days: [1, 4] }, directions: 'Use 2.5 mL (half a cap) for each 160 L (40 US gallons) twice a week or as needed in response to signs of nitrogen deficiency (e.g. stunted growth, chlorosis).' },
-                { name: 'Prime', dose: (isWC, wcPercent) => { if (!isWC) return 'N/A'; const newWaterGallons = TANK_SIZE_GALLONS * (wcPercent / 100); return formatDose((5 / 50) * newWaterGallons); }, schedule: { type: 'water_change' }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) of new water. For smaller volumes, each cap thread is approx. 1 mL. Best if added to new water before adding to aquarium.' },
-                { name: 'Stability', dose: (isWC) => isWC ? formatDose((5 / 20) * TANK_SIZE_GALLONS) : 'N/A', schedule: { type: 'water_change' }, directions: 'Use 1 capful (5 mL) for each 40 L (10 US gallons) on the first day with a new aquarium, then 1 capful for each 80 L (20 US gallons) daily for 7 days. For maintenance, use 1 capful for each 80L once a month or with each water change.' }
+                { name: 'Flourish', dose: () => formatDose( (5 / 250) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [3] }, directions: 'Use 1 capful (5 mL) for each 250 L (60 US gallons) once or twice a week. For smaller doses, each cap thread is approx. 1 mL. Refrigeration is recommended 3 months after opening.' },
+                { name: 'Excel', dose: (isWC, wcVolume) => formatDose(isWC && (wcVolume / TANK_SIZE_LITRES) >= 0.4 ? (5 / 40) * TANK_SIZE_LITRES : (5 / 200) * TANK_SIZE_LITRES), schedule: { type: 'alternate_day' }, directions: 'On initial use or after a major (> 40%) water change, use 1 capful (5 mL) for every 40 L (10 US gallons). Thereafter use 1 capful for every 200 L (50 US gallons) daily or every other day.' },
+                { name: 'Iron', dose: () => formatDose( (5 / 200) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [5] }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) or as required to maintain about 0.10 mg/L iron.' },
+                { name: 'Nitrogen', dose: () => formatDose( ((2.5 / 160) * TANK_SIZE_LITRES) * 0.75 ), schedule: { type: 'weekly', days: [1, 4] }, directions: 'Use 2.5 mL (half a cap) for each 160 L (40 US gallons) twice a week or as needed in response to signs of nitrogen deficiency (e.g. stunted growth, chlorosis).' },
+                { name: 'Prime', dose: (isWC, wcVolume) => { if (!isWC || wcVolume <= 0) return 'N/A'; return formatDose((5 / 200) * wcVolume); }, schedule: { type: 'water_change' }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) of new water. For smaller volumes, each cap thread is approx. 1 mL. Best if added to new water before adding to aquarium.' },
+                { name: 'Stability', dose: (isWC) => isWC ? formatDose((5 / 80) * TANK_SIZE_LITRES) : 'N/A', schedule: { type: 'water_change_monthly' }, directions: 'For optimum biofilter performance use 1 capful (5 mL) for each 80 L (20 US gallons) once a month with a water change.' }
             ];
 
             const WQ_PARAMS = {
@@ -266,6 +256,12 @@
                 Ammonia: { label: 'Ammonia', values: ['Not Tested', '0', '0.25', '0.5', '1.0', '2.0', '4.0'], unit: 'ppm' },
                 Nitrite: { label: 'Nitrite', values: ['Not Tested', '0', '0.25', '0.5', '1.0', '2.0', '5.0'], unit: 'ppm' },
                 Nitrate: { label: 'Nitrate', values: ['Not Tested', '0', '5', '10', '20', '40', '80'], unit: 'ppm' }
+            };
+            
+            const ADVANCED_WQ_PARAMS = {
+                GH: { label: 'GH', unit: 'ppm' },
+                KH: { label: 'KH', unit: 'ppm' },
+                TA: { label: 'TA', unit: 'ppm' }
             };
 
             // --- Date & Data Helpers ---
@@ -276,6 +272,13 @@
                 const year = date.getFullYear();
                 return `${day}.${month}.${year}`;
             };
+
+            function findFirstLogDate() {
+                const dates = Object.keys(state.logData);
+                if (dates.length === 0) return null;
+                dates.sort();
+                return new Date(dates[0] + 'T12:00:00');
+            }
 
             function pruneOldData() {
                 const twoMonthsAgo = new Date();
@@ -291,13 +294,25 @@
             }
 
             function loadData() {
-                const savedData = localStorage.getItem('aquariumLog_monthly_v5');
-                state.logData = savedData ? JSON.parse(savedData) : {};
+                // Migration from old key if it exists
+                const oldData = localStorage.getItem('aquariumLog_monthly_v5');
+                if (oldData) {
+                    state.logData = JSON.parse(oldData);
+                    saveData(); // Save immediately under the new key
+                    localStorage.removeItem('aquariumLog_monthly_v5'); // Remove old key
+                } else {
+                    const savedData = localStorage.getItem('aquariumLog_monthly_v6');
+                    state.logData = savedData ? JSON.parse(savedData) : {};
+                }
+                state.firstLogDate = findFirstLogDate();
                 pruneOldData();
             }
 
             function saveData() {
-                localStorage.setItem('aquariumLog_monthly_v5', JSON.stringify(state.logData));
+                localStorage.setItem('aquariumLog_monthly_v6', JSON.stringify(state.logData));
+                if (!state.firstLogDate) {
+                    state.firstLogDate = findFirstLogDate();
+                }
             }
 
             function getDayLog(date) {
@@ -320,6 +335,7 @@
                 const key = toISODateString(state.selectedDate);
                 delete state.logData[key];
                 saveData();
+                state.firstLogDate = findFirstLogDate();
                 render();
             }
 
@@ -351,7 +367,7 @@
                 const wq = log.wq || {};
 
                 if (parseFloat(wq.Ammonia) >= 0.25 || parseFloat(wq.Nitrite) >= 0.25) {
-                    actions.push({ type: 'priority', title: 'Priority Alert: Toxins Detected', message: 'Perform an immediate 50% water change. Dose Prime for the full tank volume (3 gal) to detoxify.', suppressFertilizers: true });
+                    actions.push({ type: 'priority', title: 'Priority Alert: Toxins Detected', message: 'Perform an immediate 50% water change. Dose Prime for the full tank volume to detoxify.', suppressFertilizers: true });
                 }
                 if (parseFloat(wq.Nitrate) >= 40) {
                     actions.push({ type: 'recommendation', title: 'High Nitrates Advisory', message: 'Consider a water change to lower nitrates. Pause Nitrogen dosing if levels remain high.', suppressNitrogen: true });
@@ -365,6 +381,8 @@
                 const isWC = log.wc > 0;
                 const suppressFertilizers = wqActions.some(a => a.suppressFertilizers);
                 const suppressNitrogen = wqActions.some(a => a.suppressNitrogen);
+
+                const isNewTank = !state.firstLogDate || (TODAY - state.firstLogDate) / (1000 * 60 * 60 * 24) < 21;
 
                 TREATMENTS.forEach(t => {
                     if (suppressFertilizers && ['Flourish', 'Iron', 'Nitrogen'].includes(t.name)) return;
@@ -382,12 +400,29 @@
                     const yesterdayLog = getDayLog(yesterday);
 
                     switch(t.schedule.type) {
-                        case 'water_change': if (isWC) { shouldDose = true; reason = `${log.wc}% Water Change`; } break;
+                        case 'water_change': if (isWC) { shouldDose = true; reason = `For ${log.wc}L Water Change`; } break;
+                        case 'water_change_monthly':
+                            if (isWC) {
+                                let dosedInLast30Days = false;
+                                for (let i = 1; i <= 30; i++) {
+                                    const checkDate = new Date(date);
+                                    checkDate.setDate(date.getDate() - i);
+                                    if(getDayLog(checkDate).doses[t.name]) {
+                                        dosedInLast30Days = true;
+                                        break;
+                                    }
+                                }
+                                if (!dosedInLast30Days) {
+                                    shouldDose = true;
+                                    reason = 'Monthly dose with water change';
+                                }
+                            }
+                            break;
                         case 'alternate_day': if (!yesterdayLog.doses[t.name]) { shouldDose = true; reason = 'Alternate Day Dosing'; } break;
                         case 'weekly':
                             if (t.schedule.days.includes(dayOfWeek)) {
                                 shouldDose = true; reason = `Scheduled for ${DAYS[dayOfWeek]}`;
-                            } else if (toISODateString(date) === toISODateString(TODAY)) {
+                            } else if (toISODateString(date) === toISODateString(TODAY) && !isNewTank) {
                                 let missedDay = null;
                                 for (let i = 1; i < 7; i++) {
                                     const checkDate = new Date(date);
@@ -432,18 +467,21 @@
                 - Ammonia: ${getWqValueForPrompt(selectedLog, 'Ammonia')} ppm
                 - Nitrite: ${getWqValueForPrompt(selectedLog, 'Nitrite')} ppm
                 - Nitrate: ${getWqValueForPrompt(selectedLog, 'Nitrate')} ppm
+                - GH: ${getWqValueForPrompt(selectedLog, 'GH') || 'Not Tested'} ppm
+                - KH: ${getWqValueForPrompt(selectedLog, 'KH') || 'Not Tested'} ppm
+                - TA: ${getWqValueForPrompt(selectedLog, 'TA') || 'Not Tested'} ppm
                 Today's Actions:
-                - Water Change: ${selectedLog.wc}%
+                - Water Added: ${selectedLog.wc} litres
                 - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
                 ${promptHistory}
-                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a starship AI: functional, friendly, and professional, and keep it very short and brief.`;
+                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a "NASA Punk" persona: functional, slightly retro, and professional, like a ship's computer log, and keep it very short and brief.`;
 
                 renderAnalysisResult('<p class="loading-analysis">Analysing system data...</p>');
 
                 try {
                     let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                     const payload = { contents: chatHistory };
-                    const apiKey = "AIzaSyBQF2vNPby18Salq5AkLM8O3WxUOjYRYRU"; // Remember to add your restricted API key here
+                    const apiKey = ""; // Remember to add your restricted API key here
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(apiUrl, {
@@ -469,25 +507,6 @@
             }
 
             // --- Render Functions ---
-            function triggerAnimation(elementsToAnimate) {
-                if (elementsToAnimate && elementsToAnimate.forEach) {
-                    elementsToAnimate.forEach((item, index) => {
-                        item.classList.remove('animate-on-load');
-                        void item.offsetWidth; 
-                        item.style.animationDelay = `${index * 60}ms`;
-                        item.classList.add('animate-on-load');
-                    });
-                }
-            }
-
-            function runInitialAnimation() {
-                const allAnimItems = document.querySelectorAll('.animate-on-load');
-                allAnimItems.forEach((item, index) => {
-                    item.style.animationDelay = `${index * 100}ms`;
-                    item.classList.add('animate-on-load');
-                });
-            }
-            
             function updateStreakCounter() {
                 let streak = 0;
                 let checkDate = new Date(TODAY);
@@ -508,7 +527,7 @@
 
             function renderAnalysisResult(htmlContent) {
                  elements.analysisContainer.innerHTML = `
-                    <div class="retro-panel p-4 animate-on-load" style="animation-delay: 0ms;">
+                    <div class="retro-panel p-4">
                         <h2 class="text-xl font-bold mb-3 text-center text-zinc-900">AI Health Analysis</h2>
                         <div class="text-zinc-700 space-y-2">${htmlContent}</div>
                     </div>
@@ -568,9 +587,17 @@
                     `;
                 }).join('');
 
-                elements.waterChangeControls.querySelectorAll('.retro-btn').forEach(btn => {
-                    btn.classList.toggle('active', parseInt(btn.dataset.percent) === log.wc);
-                });
+                elements.advancedWqInputs.innerHTML = Object.entries(ADVANCED_WQ_PARAMS).map(([key, param]) => {
+                    const savedValue = log.wq[key] || '';
+                    return `
+                        <div>
+                            <label for="wq-${key}" class="block mb-1 font-medium text-zinc-600 text-sm">${param.label} ${param.unit ? `(${param.unit})` : ''}</label>
+                            <input type="number" id="wq-${key}" data-key="${key}" value="${savedValue}" class="wq-input retro-btn w-full p-2 text-center" placeholder="N/A">
+                        </div>
+                    `;
+                }).join('');
+                
+                elements.wcInput.value = log.wc > 0 ? log.wc : '';
                 const dayString = toISODateString(state.selectedDate) === toISODateString(TODAY) ? "Today" : `on ${DAYS[state.selectedDate.getDay()]}`;
                 elements.waterChangeTitle.textContent = `Water Change ${dayString}`;
                 elements.dosingDayTitle.textContent = `Tasks for ${formatDate(state.selectedDate)}`;
@@ -640,7 +667,6 @@
             // --- Event Listeners ---
             function handleMonthChange(direction) {
                 state.currentDate.setMonth(state.currentDate.getMonth() + direction);
-                triggerAnimation(elements.animBelowCalendar);
                 render();
             }
 
@@ -651,7 +677,6 @@
                 const button = e.target.closest('.day-cell');
                 if (button) {
                     state.selectedDate = new Date(button.dataset.date + 'T12:00:00');
-                    triggerAnimation(elements.animBelowCalendar);
                     elements.analysisContainer.innerHTML = ''; // Clear old analysis
                     render();
                 }
@@ -668,15 +693,11 @@
                 }
             });
 
-            elements.waterChangeControls.addEventListener('click', e => {
-                const button = e.target.closest('.retro-btn');
-                if (button) {
-                    const log = getDayLog(state.selectedDate);
-                    log.wc = parseInt(button.dataset.percent);
-                    saveData();
-                    triggerAnimation(elements.animBelowWC);
-                    render();
-                }
+            elements.wcInput.addEventListener('input', e => {
+                const log = getDayLog(state.selectedDate);
+                log.wc = parseFloat(e.target.value) || 0;
+                saveData();
+                renderPanels(); // Only re-render panels, not the whole calendar
             });
             
             elements.wqInputs.addEventListener('change', e => {
@@ -685,6 +706,21 @@
                     const key = e.target.dataset.key;
                     const value = e.target.value;
                     if (value === 'Not Tested') {
+                        delete log.wq[key];
+                    } else {
+                        log.wq[key] = value;
+                    }
+                    saveData();
+                    render();
+                }
+            });
+
+            elements.advancedWqInputs.addEventListener('input', e => {
+                 if(e.target.matches('.wq-input')) {
+                    const log = getDayLog(state.selectedDate);
+                    const key = e.target.dataset.key;
+                    const value = e.target.value;
+                    if (value === '') {
                         delete log.wq[key];
                     } else {
                         log.wq[key] = value;
@@ -716,7 +752,6 @@
             loadData();
             renderChemicalReference();
             render();
-            runInitialAnimation();
         });
     </script>
 </body>
