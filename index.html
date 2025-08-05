@@ -474,14 +474,14 @@
                 - Water Added: ${selectedLog.wc} litres
                 - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
                 ${promptHistory}
-                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a "NASA Punk" persona: functional, slightly retro, and professional, like a ship's computer log, and keep it very short and brief.`;
+                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Focus on the most important next steps. Adopt a friendly spaceship AI and keep it very short and brief.`;
 
                 renderAnalysisResult('<p class="loading-analysis">Analysing system data...</p>');
 
                 try {
                     let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                     const payload = { contents: chatHistory };
-                    const apiKey = ""; // Remember to add your restricted API key here
+                    const apiKey = "AIzaSyBQF2vNPby18Salq5AkLM8O3WxUOjYRYRU"; // Remember to add your restricted API key here
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(apiUrl, {
