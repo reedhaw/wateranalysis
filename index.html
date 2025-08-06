@@ -147,7 +147,7 @@
             <div id="water-quality-inputs-container" class="mt-4 pt-4 border-t border-stone-300 hidden">
                 <div id="water-quality-inputs" class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm"></div>
                 <h3 class="text-lg font-bold text-zinc-800 mt-4 mb-2">Advanced Parameters</h3>
-                <div id="advanced-wq-inputs" class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm"></div>
+                <div id="advanced-wq-inputs" class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm"></div>
             </div>
         </div>
 
@@ -224,6 +224,7 @@
             const TANK_SIZE_GALLONS = 3;
             const TANK_SIZE_LITRES = TANK_SIZE_GALLONS * 3.78541;
             const DROPS_PER_ML = 20;
+            const MG_PER_L_TO_DH = 17.86;
             const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const TODAY = new Date();
             TODAY.setHours(0, 0, 0, 0);
@@ -241,14 +242,21 @@
                 const drops = Math.round(ml * DROPS_PER_ML);
                 return `${ml.toFixed(2)} mL (~${drops} drops)`;
             };
+            
+            const formatGrams = (g) => {
+                 if (isNaN(g) || g <= 0) return 'N/A';
+                 return `${g.toFixed(2)} g`;
+            }
 
             const TREATMENTS = [
                 { name: 'Flourish', dose: () => formatDose( (5 / 250) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [3] }, directions: 'Use 1 capful (5 mL) for each 250 L (60 US gallons) once or twice a week. For smaller doses, each cap thread is approx. 1 mL. Refrigeration is recommended 3 months after opening.' },
+                { name: 'Trace', dose: () => formatDose( (5 / 80) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [1, 5] }, directions: 'Use 1 capful (5 mL) for every 80 L (20 US gallons) twice a week. When using in conjunction with Flourish®, dose on alternate days.' },
                 { name: 'Excel', dose: (isWC, wcVolume) => formatDose(isWC && (wcVolume / TANK_SIZE_LITRES) >= 0.4 ? (5 / 40) * TANK_SIZE_LITRES : (5 / 200) * TANK_SIZE_LITRES), schedule: { type: 'alternate_day' }, directions: 'On initial use or after a major (> 40%) water change, use 1 capful (5 mL) for every 40 L (10 US gallons). Thereafter use 1 capful for every 200 L (50 US gallons) daily or every other day.' },
                 { name: 'Iron', dose: () => formatDose( (5 / 200) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [5] }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) or as required to maintain about 0.10 mg/L iron.' },
                 { name: 'Nitrogen', dose: () => formatDose( ((2.5 / 160) * TANK_SIZE_LITRES) * 0.75 ), schedule: { type: 'weekly', days: [1, 4] }, directions: 'Use 2.5 mL (half a cap) for each 160 L (40 US gallons) twice a week or as needed in response to signs of nitrogen deficiency (e.g. stunted growth, chlorosis).' },
                 { name: 'Prime', dose: (isWC, wcVolume) => { if (!isWC || wcVolume <= 0) return 'N/A'; return formatDose((5 / 200) * wcVolume); }, schedule: { type: 'water_change' }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) of new water. For smaller volumes, each cap thread is approx. 1 mL. Best if added to new water before adding to aquarium.' },
-                { name: 'Stability', dose: (isWC) => isWC ? formatDose((5 / 80) * TANK_SIZE_LITRES) : 'N/A', schedule: { type: 'water_change_monthly' }, directions: 'For optimum biofilter performance use 1 capful (5 mL) for each 80 L (20 US gallons) once a month with a water change.' }
+                { name: 'Stability', dose: (isWC) => isWC ? formatDose((5 / 80) * TANK_SIZE_LITRES) : 'N/A', schedule: { type: 'water_change_monthly' }, directions: 'For optimum biofilter performance use 1 capful (5 mL) for each 80 L (20 US gallons) once a month with a water change.' },
+                { name: 'Alkaline Buffer', dose: () => formatGrams( (6 / 80) * TANK_SIZE_LITRES ), schedule: { type: 'manual' }, directions: 'To increase pH, use 1 teaspoon (6 g) for every 80 L (20 US gallons) daily until desired pH is reached (this dose raises alkalinity by about 1 meq/L (2.8 dKH)).' }
             ];
 
             const WQ_PARAMS = {
@@ -259,8 +267,8 @@
             };
             
             const ADVANCED_WQ_PARAMS = {
-                GH: { label: 'GH', unit: 'ppm' },
-                KH: { label: 'KH', unit: 'ppm' },
+                GH: { label: 'GH', unit: 'mg/L' },
+                KH: { label: 'KH', unit: 'mg/L' },
                 TA: { label: 'TA', unit: 'ppm' }
             };
 
@@ -294,16 +302,8 @@
             }
 
             function loadData() {
-                // Migration from old key if it exists
-                const oldData = localStorage.getItem('aquariumLog_monthly_v5');
-                if (oldData) {
-                    state.logData = JSON.parse(oldData);
-                    saveData(); // Save immediately under the new key
-                    localStorage.removeItem('aquariumLog_monthly_v5'); // Remove old key
-                } else {
-                    const savedData = localStorage.getItem('aquariumLog_monthly_v6');
-                    state.logData = savedData ? JSON.parse(savedData) : {};
-                }
+                const savedData = localStorage.getItem('aquariumLog_monthly_v6');
+                state.logData = savedData ? JSON.parse(savedData) : {};
                 state.firstLogDate = findFirstLogDate();
                 pruneOldData();
             }
@@ -372,6 +372,13 @@
                 if (parseFloat(wq.Nitrate) >= 40) {
                     actions.push({ type: 'recommendation', title: 'High Nitrates Advisory', message: 'Consider a water change to lower nitrates. Pause Nitrogen dosing if levels remain high.', suppressNitrogen: true });
                 }
+                if (parseFloat(wq.pH) <= 6.4) {
+                    actions.push({ type: 'recommendation', title: 'Low pH Advisory', message: 'pH is low. Consider using Alkaline Buffer to gradually raise pH towards the target range (6.8-7.6).' });
+                }
+                const khInDkh = parseFloat(wq.KH) / MG_PER_L_TO_DH;
+                if (wq.KH !== undefined && khInDkh <= 2) {
+                    actions.push({ type: 'recommendation', title: 'Low Alkalinity Advisory', message: 'KH is low, which can lead to pH swings. A dose of Alkaline Buffer will raise KH by approx. 2.8 dKH.' });
+                }
                 return actions;
             }
 
@@ -438,6 +445,15 @@
                                 }
                             }
                             break;
+                        case 'manual':
+                             if (t.name === 'Alkaline Buffer') {
+                                const needsBuffer = wqActions.some(a => a.title.includes('Low pH') || a.title.includes('Low Alkalinity'));
+                                if (needsBuffer) {
+                                    shouldDose = true;
+                                    reason = 'Low pH or KH detected';
+                                }
+                            }
+                            break;
                     }
                     if (shouldDose) recommendations[t.name] = { shouldDose, reason, isDone: false };
                 });
@@ -467,14 +483,14 @@
                 - Ammonia: ${getWqValueForPrompt(selectedLog, 'Ammonia')} ppm
                 - Nitrite: ${getWqValueForPrompt(selectedLog, 'Nitrite')} ppm
                 - Nitrate: ${getWqValueForPrompt(selectedLog, 'Nitrate')} ppm
-                - GH: ${getWqValueForPrompt(selectedLog, 'GH') || 'Not Tested'} ppm
-                - KH: ${getWqValueForPrompt(selectedLog, 'KH') || 'Not Tested'} ppm
+                - GH: ${getWqValueForPrompt(selectedLog, 'GH') || 'Not Tested'} mg/L
+                - KH: ${getWqValueForPrompt(selectedLog, 'KH') || 'Not Tested'} mg/L
                 - TA: ${getWqValueForPrompt(selectedLog, 'TA') || 'Not Tested'} ppm
                 Today's Actions:
                 - Water Added: ${selectedLog.wc} litres
                 - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
                 ${promptHistory}
-                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Focus on the most important next steps. Adopt a friendly spaceship AI and keep it very short and brief.`;
+                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a friendly starship AI and keep it very short and brief.`;
 
                 renderAnalysisResult('<p class="loading-analysis">Analysing system data...</p>');
 
@@ -589,10 +605,14 @@
 
                 elements.advancedWqInputs.innerHTML = Object.entries(ADVANCED_WQ_PARAMS).map(([key, param]) => {
                     const savedValue = log.wq[key] || '';
+                    const conversion = (key === 'GH' || key === 'KH') && savedValue ? `(≈ ${(savedValue / MG_PER_L_TO_DH).toFixed(1)} °d)` : '';
                     return `
-                        <div>
-                            <label for="wq-${key}" class="block mb-1 font-medium text-zinc-600 text-sm">${param.label} ${param.unit ? `(${param.unit})` : ''}</label>
-                            <input type="number" id="wq-${key}" data-key="${key}" value="${savedValue}" class="wq-input retro-btn w-full p-2 text-center" placeholder="N/A">
+                        <div class="flex flex-col">
+                            <label for="wq-${key}" class="block mb-1 font-medium text-zinc-600 text-sm">${param.label} (${param.unit})</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="wq-${key}" data-key="${key}" value="${savedValue}" class="wq-input retro-btn w-full p-2 text-center" placeholder="N/A">
+                                <span id="${key}-conversion" class="text-sm text-zinc-500 w-20">${conversion}</span>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -693,11 +713,11 @@
                 }
             });
 
-            elements.wcInput.addEventListener('input', e => {
+            elements.wcInput.addEventListener('change', e => {
                 const log = getDayLog(state.selectedDate);
                 log.wc = parseFloat(e.target.value) || 0;
                 saveData();
-                renderPanels(); // Only re-render panels, not the whole calendar
+                renderPanels();
             });
             
             elements.wqInputs.addEventListener('change', e => {
@@ -720,15 +740,30 @@
                     const log = getDayLog(state.selectedDate);
                     const key = e.target.dataset.key;
                     const value = e.target.value;
+                    
+                    const conversionSpan = document.getElementById(`${key}-conversion`);
+                    if (conversionSpan) {
+                         if (value && (key === 'GH' || key === 'KH')) {
+                            conversionSpan.textContent = `(≈ ${(value / MG_PER_L_TO_DH).toFixed(1)} °d)`;
+                         } else {
+                            conversionSpan.textContent = '';
+                         }
+                    }
+
                     if (value === '') {
                         delete log.wq[key];
                     } else {
                         log.wq[key] = value;
                     }
                     saveData();
-                    render();
                 }
             });
+            
+             elements.advancedWqInputs.addEventListener('change', e => {
+                 if(e.target.matches('.wq-input')) {
+                    render();
+                 }
+             });
 
             elements.resetButton.addEventListener('click', () => {
                 if (confirm(`Are you sure you want to erase the log for ${formatDate(state.selectedDate)}? This cannot be undone.`)) {
