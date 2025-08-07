@@ -135,6 +135,14 @@
             </div>
         </div>
 
+        <!-- Algae Alert Panel -->
+        <div id="algae-panel" class="retro-panel mb-6">
+             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h2 class="text-xl font-bold text-center text-zinc-900">System Status</h2>
+                <button id="algae-btn" class="retro-btn w-full sm:w-auto">Algae Present</button>
+            </div>
+        </div>
+
         <!-- Water Quality Panel -->
         <div id="wq-panel" class="retro-panel mb-6">
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -218,6 +226,7 @@
                 analyzeBtn: document.getElementById('analyze-btn'),
                 analysisContainer: document.getElementById('analysis-container'),
                 streakCounter: document.getElementById('streak-counter'),
+                algaeBtn: document.getElementById('algae-btn'),
             };
 
             // --- Constants & State ---
@@ -318,7 +327,7 @@
             function getDayLog(date) {
                 const key = toISODateString(date);
                 if (!state.logData[key]) {
-                    state.logData[key] = { doses: {}, wq: {}, wc: 0 };
+                    state.logData[key] = { doses: {}, wq: {}, wc: 0, algaePresent: false };
                 }
                 return state.logData[key];
             }
@@ -328,7 +337,8 @@
                 const dosesEmpty = !log.doses || Object.keys(log.doses).length === 0;
                 const wqEmpty = !log.wq || Object.keys(log.wq).length === 0;
                 const wcEmpty = !log.wc || log.wc === 0;
-                return dosesEmpty && wqEmpty && wcEmpty;
+                const algaeEmpty = !log.algaePresent;
+                return dosesEmpty && wqEmpty && wcEmpty && algaeEmpty;
             }
             
             function resetSelectedDayData() {
@@ -342,21 +352,25 @@
             // --- Logic Engines ---
             function getSystemRecommendations(date) {
                 const recommendations = [];
-                if (toISODateString(date) !== toISODateString(TODAY)) return recommendations;
+                const log = getDayLog(date);
 
-                let wqTestFound = false;
-                for (let i = 0; i < 7; i++) {
-                    const checkDate = new Date(TODAY);
-                    checkDate.setDate(TODAY.getDate() - i);
-                    const log = getDayLog(checkDate);
-                    if (log.wq && Object.keys(log.wq).length > 0) {
-                        wqTestFound = true;
-                        break;
+                if (toISODateString(date) === toISODateString(TODAY)) {
+                    let wqTestFound = false;
+                    for (let i = 0; i < 7; i++) {
+                        const checkDate = new Date(TODAY);
+                        checkDate.setDate(TODAY.getDate() - i);
+                        if (getDayLog(checkDate).wq && Object.keys(getDayLog(checkDate).wq).length > 0) {
+                            wqTestFound = true;
+                            break;
+                        }
+                    }
+                    if (!wqTestFound) {
+                        recommendations.push({ title: 'System Check Recommended', message: 'No water quality test has been logged in the past 7 days. Regular testing is advised to ensure a stable environment.' });
                     }
                 }
 
-                if (!wqTestFound) {
-                    recommendations.push({ title: 'System Check Recommended', message: 'No water quality test has been logged in the past 7 days. Regular testing is advised to ensure a stable environment.' });
+                if (log.algaePresent) {
+                     recommendations.push({ title: 'Algae Alert Active', message: 'Lean dosing protocol engaged. Consider reducing lighting period by 1-2 hours and ensure good water flow.' });
                 }
                 return recommendations;
             }
@@ -390,6 +404,7 @@
                 const suppressNitrogen = wqActions.some(a => a.suppressNitrogen);
 
                 const isNewTank = !state.firstLogDate || (TODAY - state.firstLogDate) / (1000 * 60 * 60 * 24) < 21;
+                const algaePresent = log.algaePresent;
 
                 TREATMENTS.forEach(t => {
                     if (suppressFertilizers && ['Flourish', 'Iron', 'Nitrogen'].includes(t.name)) return;
@@ -427,7 +442,25 @@
                             break;
                         case 'alternate_day': if (!yesterdayLog.doses[t.name]) { shouldDose = true; reason = 'Alternate Day Dosing'; } break;
                         case 'weekly':
-                            if (t.schedule.days.includes(dayOfWeek)) {
+                            if (algaePresent && ['Nitrogen', 'Iron'].includes(t.name)) {
+                                reason = 'Paused due to algae alert';
+                                break;
+                            }
+                            if (algaePresent && t.name === 'Flourish') {
+                                let dosedInLast10Days = false;
+                                for (let i = 1; i <= 10; i++) {
+                                     const checkDate = new Date(date);
+                                     checkDate.setDate(date.getDate() - i);
+                                     if(getDayLog(checkDate).doses[t.name]) {
+                                         dosedInLast10Days = true;
+                                         break;
+                                     }
+                                }
+                                if (!dosedInLast10Days) {
+                                    shouldDose = true;
+                                    reason = 'Lean dosing schedule (1/10 days)';
+                                }
+                            } else if (t.schedule.days.includes(dayOfWeek)) {
                                 shouldDose = true; reason = `Scheduled for ${DAYS[dayOfWeek]}`;
                             } else if (toISODateString(date) === toISODateString(TODAY) && !isNewTank) {
                                 let missedDay = null;
@@ -467,16 +500,16 @@
 
             async function getGeminiAnalysis() {
                 const selectedLog = getDayLog(state.selectedDate);
-                let promptHistory = `Historical Data (last 3 logs):\n`;
-                for(let i=1; i<=3; i++){
+                let promptHistory = `Historical Data (last 7 logs):\n`;
+                for(let i=1; i<=7; i++){
                     const pastDate = new Date(state.selectedDate);
                     pastDate.setDate(pastDate.getDate() - i);
                     const pastLog = getDayLog(pastDate);
                     const doses = pastLog.doses ? Object.keys(pastLog.doses).join(', ') : 'None';
-                    promptHistory += `- ${toISODateString(pastDate)}: Ammonia: ${getWqValueForPrompt(pastLog, 'Ammonia')}, Nitrite: ${getWqValueForPrompt(pastLog, 'Nitrite')}, Nitrate: ${getWqValueForPrompt(pastLog, 'Nitrate')}, Doses: ${doses || 'None'}\n`;
+                    promptHistory += `- ${toISODateString(pastDate)}: pH: ${getWqValueForPrompt(pastLog, 'pH')}, Ammonia: ${getWqValueForPrompt(pastLog, 'Ammonia')}, Nitrite: ${getWqValueForPrompt(pastLog, 'Nitrite')}, Nitrate: ${getWqValueForPrompt(pastLog, 'Nitrate')}, GH: ${getWqValueForPrompt(pastLog, 'GH')}, KH: ${getWqValueForPrompt(pastLog, 'KH')}, Doses: ${doses || 'None'}\n`;
                 }
 
-                const prompt = `You are an expert aquarist analysing data for a 3-gallon planted nano tank with shrimp and snails.
+                const prompt = `You are an expert aquarist analysing data for a 3-gallon planted nano tank with Neocaridina shrimp, Nerite and Ramshorn snails.
                 Today's Date: ${toISODateString(state.selectedDate)}
                 Today's Water Parameters:
                 - pH: ${getWqValueForPrompt(selectedLog, 'pH')}
@@ -485,12 +518,12 @@
                 - Nitrate: ${getWqValueForPrompt(selectedLog, 'Nitrate')} ppm
                 - GH: ${getWqValueForPrompt(selectedLog, 'GH') || 'Not Tested'} mg/L
                 - KH: ${getWqValueForPrompt(selectedLog, 'KH') || 'Not Tested'} mg/L
-                - TA: ${getWqValueForPrompt(selectedLog, 'TA') || 'Not Tested'} ppm
                 Today's Actions:
                 - Water Added: ${selectedLog.wc} litres
                 - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
+                - Algae Present: ${selectedLog.algaePresent ? 'Yes' : 'No'}
                 ${promptHistory}
-                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a friendly starship AI and keep it very short and brief.`;
+                Based on this data, provide a concise, bulleted analysis and 1-2 actionable recommendations. Be encouraging and focus on the most important next steps. Adopt a friendly ship AI: functional, and keep it very short and brief.`;
 
                 renderAnalysisResult('<p class="loading-analysis">Analysing system data...</p>');
 
@@ -589,6 +622,8 @@
             
             function renderPanels() {
                 const log = getDayLog(state.selectedDate);
+
+                elements.algaeBtn.classList.toggle('active', !!log.algaePresent);
 
                 elements.wqInputs.innerHTML = Object.entries(WQ_PARAMS).map(([key, param]) => {
                     const savedValue = log.wq[key] ?? 'Not Tested';
@@ -779,6 +814,13 @@
             elements.logWqBtn.addEventListener('click', () => {
                 elements.wqInputsContainer.classList.toggle('hidden');
                 elements.logWqBtn.classList.toggle('active');
+            });
+
+            elements.algaeBtn.addEventListener('click', () => {
+                const log = getDayLog(state.selectedDate);
+                log.algaePresent = !log.algaePresent;
+                saveData();
+                render();
             });
 
             elements.analyzeBtn.addEventListener('click', getGeminiAnalysis);
