@@ -258,8 +258,8 @@
             }
 
             const TREATMENTS = [
-                { name: 'Flourish', dose: () => formatDose( (5 / 250) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [3] }, directions: 'Use 1 capful (5 mL) for each 250 L (60 US gallons) once or twice a week. For smaller doses, each cap thread is approx. 1 mL. Refrigeration is recommended 3 months after opening.' },
-                { name: 'Trace', dose: () => formatDose( (5 / 80) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [1, 5] }, directions: 'Use 1 capful (5 mL) for every 80 L (20 US gallons) twice a week. When using in conjunction with Flourish®, dose on alternate days.' },
+                { name: 'Flourish', dose: () => formatDose( (5 / 250) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [4] }, directions: 'Use 1 capful (5 mL) for each 250 L (60 US gallons) once or twice a week. For smaller doses, each cap thread is approx. 1 mL. Refrigeration is recommended 3 months after opening.' },
+                { name: 'Trace', dose: () => formatDose( (5 / 80) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [2, 6] }, directions: 'Use 1 capful (5 mL) for every 80 L (20 US gallons) twice a week. When using in conjunction with Flourish®, dose on alternate days.' },
                 { name: 'Excel', dose: (isWC, wcVolume) => formatDose(isWC && (wcVolume / TANK_SIZE_LITRES) >= 0.4 ? (5 / 40) * TANK_SIZE_LITRES : (5 / 200) * TANK_SIZE_LITRES), schedule: { type: 'alternate_day' }, directions: 'On initial use or after a major (> 40%) water change, use 1 capful (5 mL) for every 40 L (10 US gallons). Thereafter use 1 capful for every 200 L (50 US gallons) daily or every other day.' },
                 { name: 'Iron', dose: () => formatDose( (5 / 200) * TANK_SIZE_LITRES ), schedule: { type: 'weekly', days: [5] }, directions: 'Use 1 capful (5 mL) for each 200 L (50 US gallons) or as required to maintain about 0.10 mg/L iron.' },
                 { name: 'Nitrogen', dose: () => formatDose( ((2.5 / 160) * TANK_SIZE_LITRES) * 0.75 ), schedule: { type: 'weekly', days: [1, 4] }, directions: 'Use 2.5 mL (half a cap) for each 160 L (40 US gallons) twice a week or as needed in response to signs of nitrogen deficiency (e.g. stunted growth, chlorosis).' },
@@ -518,6 +518,7 @@
                 - Nitrate: ${getWqValueForPrompt(selectedLog, 'Nitrate')} ppm
                 - GH: ${getWqValueForPrompt(selectedLog, 'GH') || 'Not Tested'} mg/L
                 - KH: ${getWqValueForPrompt(selectedLog, 'KH') || 'Not Tested'} mg/L
+                - TA: ${getWqValueForPrompt(selectedLog, 'TA') || 'Not Tested'} ppm
                 Today's Actions:
                 - Water Added: ${selectedLog.wc} litres
                 - Doses Logged: ${Object.keys(selectedLog.doses).join(', ') || 'None'}
@@ -530,7 +531,7 @@
                 try {
                     let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                     const payload = { contents: chatHistory };
-                    const apiKey = "AIzaSyBQF2vNPby18Salq5AkLM8O3WxUOjYRYRU"; // Remember to add your restricted API key here
+                    const apiKey = ""; // Remember to add your restricted API key here
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                     
                     const response = await fetch(apiUrl, {
@@ -770,7 +771,7 @@
                 }
             });
 
-            elements.advancedWqInputs.addEventListener('input', e => {
+            elements.advancedWqInputs.addEventListener('change', e => {
                  if(e.target.matches('.wq-input')) {
                     const log = getDayLog(state.selectedDate);
                     const key = e.target.dataset.key;
@@ -791,14 +792,9 @@
                         log.wq[key] = value;
                     }
                     saveData();
+                    render(); // Re-render to update recommendations
                 }
             });
-            
-             elements.advancedWqInputs.addEventListener('change', e => {
-                 if(e.target.matches('.wq-input')) {
-                    render();
-                 }
-             });
 
             elements.resetButton.addEventListener('click', () => {
                 if (confirm(`Are you sure you want to erase the log for ${formatDate(state.selectedDate)}? This cannot be undone.`)) {
